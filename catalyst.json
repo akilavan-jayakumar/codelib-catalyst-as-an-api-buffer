@@ -1,0 +1,11 @@
+{
+  "functions": {
+    "targets": [
+      "service",
+      "configuration-executer",
+      "payload-cleanup"
+    ],
+    "ignore": [],
+    "source": "functions"
+  }
+}

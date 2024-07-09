@@ -1,0 +1,13 @@
+{
+	"deployment": {
+		"name": "service",
+		"stack": "node18",
+		"type": "advancedio",
+		"env_variables": {
+			"ZOHO_CATALYST_ZCQL_PARSER": "V2"
+		}
+	},
+	"execution": {
+		"main": "index.js"
+	}
+}
