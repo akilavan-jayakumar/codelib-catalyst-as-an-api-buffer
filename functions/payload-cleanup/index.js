@@ -1,24 +1,62 @@
+const catalyst = require('zcatalyst-sdk-node');
 
-module.exports = (jobRequest, context) => {
-	console.log('Hello from index.js');
+const PayloadService = require('./services/PayloadService');
+const PayloadConstants = require('./constants/PayloadConstants');
+const PayloadAssetService = require('./services/PayloadAssetService');
+const CatalystDatastoreConstants = require('./constants/CatalystDatastoreConstants');
+const PayloadRequestExecutionStatus = require('./enums/PayloadRequestExecutionStatus');
 
-	// function input: { job_details: { job_meta_details: { params: { key: 'value' } } } }
+module.exports = async (_, context) => {
+	try {
+		const catalystApp = catalyst.initialize(context);
 
-	/**
-	 * JOB REQUEST FUNCTIONALITIES
-	 */
+		const payloadService = PayloadService.getInstance(catalystApp);
 
-	const projectDetails = jobRequest.getProjectDetails(); // to get the current project details
-	const jobDetails = jobRequest.getJobDetails(); // to get the current job details
-	const jobMetaDetails = jobRequest.getJobMetaDetails(); // to get the current job's meta details
-	const jobpoolDetails = jobRequest.getJobpoolDetails(); // to get the current function job pool's details
-	const getJobCapacityAttributes = jobRequest.getJobCapacityAttributes(); // to get the current jobs capacity
-	const allJobParams = jobRequest.getAllJobParams(); // to get all the parameters supplied to the job function
-	const jobParam = jobRequest.getJobParam('key'); // to get the value of a particular parameter supplied to the job function
+		const payload_request_execution_statuses = [
+			PayloadRequestExecutionStatus.success
+		];
+		const totalRecords = await payloadService
+			.getTotalPayloads([], [], undefined, payload_request_execution_statuses)
+			.then((totalRecords) =>
+				Math.min(
+					totalRecords,
+					PayloadConstants.MAX_PAYLOADS_DELETED_PER_EXECUTION
+				)
+			);
 
-	/**
-	 * CONTEXT FUNCTIONALITIES
-	 */
-	context.closeWithSuccess(); //end of application with success
-	// context.closeWithFailure(); //end of application with failure
+		if (totalRecords) {
+			const totalPages = Math.ceil(
+				totalRecords / CatalystDatastoreConstants.MAX_RECORDS_PER_OPERATION
+			);
+
+			for (let page = 1; page <= totalPages; page++) {
+				const offset =
+					(page - 1) * CatalystDatastoreConstants.MAX_RECORDS_PER_OPERATION + 1;
+
+				const payloads = await payloadService.getPayloadsWithLimit(
+					CatalystDatastoreConstants.MAX_RECORDS_PER_OPERATION,
+					offset,
+					[],
+					[],
+					undefined,
+					payload_request_execution_statuses
+				);
+
+				for (const payload of payloads) {
+					await PayloadAssetService.getInstance(
+						catalystApp,
+						payload
+					).flushAssets();
+				}
+
+				await payloadService.deletePayloads(
+					payloads.map((payload) => payload.getRowId())
+				);
+			}
+		}
+		context.closeWithSuccess();
+	} catch (err) {
+		console.log('Error ::: ', err);
+		context.closeWithFailure();
+	}
 };

@@ -32,12 +32,12 @@ class PayloadService {
 	}
 
 	/**
-	 * 
-	 * @param {Array<string>} rowIds 
-	 * @param {Array<string>} configurationIds 
-	 * @param {number} payload_max_retry_count 
-	 * @param {Array<number>} payload_request_execution_statuses 
-	 * @returns 
+	 *
+	 * @param {Array<string>} rowIds
+	 * @param {Array<string>} configurationIds
+	 * @param {number} payload_max_retry_count
+	 * @param {Array<number>} payload_request_execution_statuses
+	 * @returns
 	 */
 	#generateWhereCriteria(
 		rowIds,
@@ -152,14 +152,15 @@ class PayloadService {
 
 	/**
 	 *
-	 * @param {Array<Payload>} payloads
+	 * @param {Array<string>} rowIds
 	 * @returns {Promise<void>}
 	 */
-	async updatePayloads(payloads) {
+	async deletePayloads(rowIds) {
+		const whereCriteria = this.#generateWhereCriteria(rowIds, [], null, []);
+
 		await this.#catalystApp
-			.datastore()
-			.table('Payload')
-			.updateRows(payloads.map((payload) => payload.getUpdatePayload()));
+			.zcql()
+			.executeZCQLQuery(`DELETE FROM Payload ${whereCriteria}`);
 	}
 
 	/**

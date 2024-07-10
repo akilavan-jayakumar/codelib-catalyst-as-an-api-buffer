@@ -4,6 +4,10 @@
 	"main": "index.js",
 	"author": "akilavan.j+lz-solutions@zohotest.com",
 	"dependencies": {
+		"ajv": "^8.16.0",
+		"ajv-errors": "^3.0.0",
+		"ajv-formats": "^3.0.1",
+		"ajv-keywords": "^5.1.0",
 		"express": "^4.19.2",
 		"zcatalyst-sdk-node": "file:../../../../../../Downloads/zcatalyst-sdk-node-job.tgz"
 	}

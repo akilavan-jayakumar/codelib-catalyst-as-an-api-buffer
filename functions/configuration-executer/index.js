@@ -3,19 +3,18 @@ const catalyst = require('zcatalyst-sdk-node');
 
 const PayloadUtil = require('./utils/PayloadUtil');
 const PayloadService = require('./services/PayloadService');
-const ConfigurationPojo = require('./pojos/ConfigurationPojo');
 const ConfigurationUtil = require('./utils/ConfigurationUtil');
 const CatalystJobService = require('./services/CatalystJobService');
 const PayloadRequestMethod = require('./enums/PayloadRequestMethod');
 const PayloadAssetService = require('./services/PayloadAssetService');
+const ConfigurationService = require('./services/ConfigurationService');
 const PayloadRequestContentType = require('./enums/PayloadRequestContentType');
-const PayloadRequestExecutionStatus = require('./enums/PayloadRequestExecutionStatus');
 const CatalystDatastoreConstants = require('./constants/CatalystDatastoreConstants');
+const PayloadRequestExecutionStatus = require('./enums/PayloadRequestExecutionStatus');
 
 module.exports = async (jobRequest, context) => {
 	try {
 		const catalystApp = catalyst.initialize(context);
-		const zcql = catalystApp.zcql();
 
 		const { domain, configuration_id } = jobRequest.getAllJobParams();
 
@@ -29,21 +28,13 @@ module.exports = async (jobRequest, context) => {
 
 		const payloadService = PayloadService.getInstance(catalystApp);
 
-		const configuration = await zcql
-			.executeZCQLQuery(
-				`SELECT * FROM Configuration WHERE Configuration.ROWID = '${configuration_id}'`
-			)
-			.then((results) => {
-				if (!results.length) {
-					throw new Error(
-						'No configuration found for id ::: ',
-						configuration_id
-					);
-				}
-				const configurationPojo = new ConfigurationPojo();
-				configurationPojo.loadFromQueryResult(results[0]);
-				return configurationPojo;
-			});
+		const configuration = await ConfigurationService.getInstance(
+			catalystApp
+		).getConfigurationById(configuration_id);
+
+		if (!configuration) {
+			throw new Error('No configuration found for id ::: ', configuration_id);
+		}
 
 		const payload_request_execution_statuses = [
 			PayloadRequestExecutionStatus.pending,
@@ -134,7 +125,17 @@ module.exports = async (jobRequest, context) => {
 						await payloadAssetService.getAssetAsJson(fileName).then((data) => {
 							requestConfiguration['headers'] = {
 								...requestConfiguration['headers'],
-								'Content-Type': PayloadRequestContentType.APPLICATION_JSON
+								'Content-Type':
+									PayloadRequestContentType[payload.getRequestContentType()]
+							};
+							requestConfiguration['data'] = data;
+						});
+					} else {
+						await payloadAssetService.getAssetAsText(fileName).then((data) => {
+							requestConfiguration['headers'] = {
+								...requestConfiguration['headers'],
+								'Content-Type':
+									PayloadRequestContentType[payload.getRequestContentType()]
 							};
 							requestConfiguration['data'] = data;
 						});

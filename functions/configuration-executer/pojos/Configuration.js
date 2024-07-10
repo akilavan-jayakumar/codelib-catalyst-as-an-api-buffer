@@ -1,4 +1,4 @@
-class ConfigurationPojo {
+class Configuration {
 	#name;
 	#rowId;
 	#base_url;
@@ -122,4 +122,4 @@ class ConfigurationPojo {
 	}
 }
 
-module.exports = ConfigurationPojo;
+module.exports = Configuration;

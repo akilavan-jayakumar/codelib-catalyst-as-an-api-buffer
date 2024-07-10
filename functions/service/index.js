@@ -1,6 +1,8 @@
 const express = require('express');
 const catalyst = require('zcatalyst-sdk-node');
 
+const AppError = require('./errors/AppError');
+const CommonUtil = require('./utils/CommonUtil');
 const RequestUtil = require('./utils/RequestUtil');
 const ResponseType = require('./enums/ResponseType');
 const Configuration = require('./pojos/Configuration');
@@ -11,6 +13,7 @@ const ResponseStatusCode = require('./enums/ResponseStatusCode');
 const CatalystJobService = require('./services/CatalystJobService');
 const ConfigurationService = require('./services/ConfigurationService');
 const ConfigurationConstants = require('./constants/ConfigurationConstants');
+const ConfigurationValidation = require('./validations/ConfigurationValidation');
 
 const app = express();
 app.use(express.json());
@@ -21,43 +24,34 @@ app.use((request, response, next) => {
 	next();
 });
 
-app.post('/configuration', async (request, response, next) => {
+app.get('/configuration/:configuration_id', async (request, response, next) => {
 	try {
+		ConfigurationValidation.validateGetConfiguration(request);
+
+		let configuration = null;
+
 		const catalystApp = response.locals.catalystApp;
+		const configuration_id = request.params.configuration_id;
 
-		const domain = RequestUtil.getDomain(request);
+		if (CommonUtil.isNumber(configuration_id)) {
+			configuration = await ConfigurationService.getInstance(
+				catalystApp
+			).getConfigurationById(configuration_id);
+		} else {
+			configuration = await ConfigurationService.getInstance(
+				catalystApp
+			).getConfigurationByName(configuration_id);
+		}
 
+		if (!configuration) {
+			throw new AppError(
+				ResponseStatusCode.NOT_FOUND,
+				"We couldn't find the requested configuration on the server."
+			);
+		}
 		const responseWrapper = new ResponseWrapper(ResponseType.APPLICATION_JSON);
-
-		const {
-			name,
-			base_url,
-			max_retries,
-			throttle_limit,
-			headers_endpoint = '',
-			throttle_window_time
-		} = request.body;
-
-		const configurationService = ConfigurationService.getInstance(catalystApp);
-
-		const configuration = new Configuration();
-		configuration.setName(name);
-		configuration.setBaseUrl(base_url);
-		configuration.setMaxRetries(max_retries);
-		configuration.setThrottleLimit(throttle_limit);
-		configuration.setHeadersEndpoint(headers_endpoint);
-		configuration.setThrottleWindowTime(throttle_window_time);
-		configuration.setConcurrencyLimit(
-			ConfigurationConstants.DEFAULT_CONCURRENCY_LIMIT
-		);
-
-		await configurationService.createConfiguration(configuration);
-		await CatalystJobService.getInstance(
-			catalystApp
-		).executeConfigurationExecutorJob(domain, configuration.getRowId(), 0);
-
-		responseWrapper.setStatusCode(ResponseStatusCode.OK);
 		responseWrapper.setData(configuration.getResponseJson());
+		responseWrapper.setStatusCode(ResponseStatusCode.OK);
 
 		ResponseHandler.sendResponse(response, responseWrapper);
 	} catch (err) {
@@ -77,6 +71,71 @@ app.get('/headers/sample', async (_request, response, next) => {
 	} catch (err) {
 		next(err);
 	}
+});
+
+app.post('/configuration', async (request, response, next) => {
+	try {
+		ConfigurationValidation.validateCreateConfiguration(request);
+
+		const catalystApp = response.locals.catalystApp;
+
+		const domain = RequestUtil.getDomain(request);
+
+		const {
+			name,
+			base_url,
+			max_retries,
+			throttle_limit,
+			headers_endpoint = '',
+			throttle_window_time
+		} = request.body;
+
+		const configurationService = ConfigurationService.getInstance(catalystApp);
+
+		await configurationService
+			.getConfigurationByName(name)
+			.then((configuration) => {
+				if (configuration) {
+					throw new AppError(
+						ResponseStatusCode.CONFLICT,
+						'name already exists.'
+					);
+				}
+			});
+
+		const configuration = new Configuration();
+		configuration.setName(name);
+		configuration.setBaseUrl(base_url);
+		configuration.setMaxRetries(max_retries);
+		configuration.setThrottleLimit(throttle_limit);
+		configuration.setHeadersEndpoint(headers_endpoint);
+		configuration.setThrottleWindowTime(throttle_window_time);
+		configuration.setConcurrencyLimit(
+			ConfigurationConstants.DEFAULT_CONCURRENCY_LIMIT
+		);
+
+		await configurationService.createConfiguration(configuration);
+		await CatalystJobService.getInstance(
+			catalystApp
+		).executeConfigurationExecutorJob(domain, configuration.getRowId(), 0);
+
+		const responseWrapper = new ResponseWrapper(ResponseType.APPLICATION_JSON);
+		responseWrapper.setStatusCode(ResponseStatusCode.OK);
+		responseWrapper.setData(configuration.getResponseJson());
+
+		ResponseHandler.sendResponse(response, responseWrapper);
+	} catch (err) {
+		next(err);
+	}
+});
+
+app.all('*', (_request, response) => {
+	const responseWrapper = new ResponseWrapper(ResponseType.APPLICATION_JSON);
+	responseWrapper.setStatusCode(ResponseStatusCode.NOT_FOUND);
+	responseWrapper.setMessage(
+		"We couldn't find the requested url on the server."
+	);
+	ResponseHandler.sendResponse(response, responseWrapper);
 });
 
 app.use((error, _request, response, _next) => {
