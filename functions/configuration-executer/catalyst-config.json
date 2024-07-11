@@ -4,7 +4,8 @@
 		"stack": "node18",
 		"type": "job",
 		"env_variables": {
-			"ZOHO_CATALYST_ZCQL_PARSER":"V2"
+			"ZOHO_CATALYST_ZCQL_PARSER": "V2",
+			"CODELIB_SECRET_KEY": "CODELIB_FAKE_KEY"
 		}
 	},
 	"execution": {

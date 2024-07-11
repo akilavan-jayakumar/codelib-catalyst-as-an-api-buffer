@@ -1,6 +1,7 @@
 const express = require('express');
 const catalyst = require('zcatalyst-sdk-node');
 
+const AuthUtil = require('./utils/AuthUtil');
 const AppError = require('./errors/AppError');
 const CommonUtil = require('./utils/CommonUtil');
 const RequestUtil = require('./utils/RequestUtil');
@@ -17,6 +18,23 @@ const ConfigurationValidation = require('./validations/ConfigurationValidation')
 
 const app = express();
 app.use(express.json());
+
+app.use((request, _response, next) => {
+	try {
+		const codeLibSecretKey = RequestUtil.getCodeLibSecretKey(request);
+
+		if (!AuthUtil.isValidCodeLibSecretKey(codeLibSecretKey)) {
+			throw new AppError(
+				ResponseStatusCode.UNAUTHORIZED,
+				"You don't have permission to perform this operation. Kindly contact your administrator for more details."
+			);
+		}
+		next();
+	} catch (err) {
+		next(err);
+	}
+});
+
 
 app.use((request, response, next) => {
 	const catalystApp = catalyst.initialize(request);
