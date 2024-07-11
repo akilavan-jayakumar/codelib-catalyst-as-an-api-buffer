@@ -8,10 +8,10 @@ class PayloadAssetService {
 
 	/**
 	 *
-	 * @type {Payload}
+	 * @type {string}
 	 * @private
 	 */
-	#payload;
+	#basePath;
 	/**
 	 *
 	 * @type {CatalystApp}
@@ -25,8 +25,8 @@ class PayloadAssetService {
 	 * @param {Payload} payload
 	 */
 	constructor(catalystApp, payload) {
-		this.#payload = payload;
 		this.#catalystApp = catalystApp;
+		this.#basePath = payload.getRowId();
 	}
 
 	/**

@@ -1,5 +1,3 @@
-const PayloadRequestExecutionStatus = require('../enums/PayloadRequestExecutionStatus');
-
 class Payload {
 	#rowId;
 	#retry_count;
@@ -90,42 +88,8 @@ class Payload {
 		this.#request_execution_status = request_execution_status;
 	}
 
-	getResponseJson() {
-		return {
-			id: this.#rowId,
-			retry_count: this.#retry_count,
-			created_time: this.#created_time,
-			response_info: this.#response_info,
-			request_method: this.#request_method,
-			request_full_path: this.#request_full_path,
-			response_status_code: this.#response_status_code,
-			request_body_file_id: this.#request_body_file_id,
-			request_content_type: this.#request_content_type,
-			request_execution_status:
-				PayloadRequestExecutionStatus[this.#request_execution_status]
-		};
-	}
 
-	getInsertPayload() {
-		return {
-			RETRY_COUNT: this.#retry_count,
-			RESPONSE_INFO: this.#response_info,
-			REQUEST_METHOD: this.#request_method,
-			CONFIGURATION_ID: this.#response_info,
-			REQUEST_FULL_PATH: this.#request_full_path,
-			REQUEST_CONTENT_TYPE: this.#request_content_type,
-			REQUEST_BODY_FILE_ID: this.#request_body_file_id,
-			RESPONSE_STATUS_CODE: this.#response_status_code,
-			REQUEST_EXECUTION_STATUS: this.#request_execution_status
-		};
-	}
 
-	getUpdatePayload() {
-		return {
-			ROWID: this.#rowId,
-			REQUEST_BODY_FILE_ID: this.#request_body_file_id
-		};
-	}
 
 	loadFromQueryResult(result) {
 		const json = result['Payload'];
@@ -145,11 +109,6 @@ class Payload {
 		this.#response_status_code = json.RESPONSE_STATUS_CODE
 			? parseInt(json.RESPONSE_STATUS_CODE)
 			: null;
-	}
-
-	loadFromTableResult(result) {
-		this.#rowId = result.ROWID;
-		this.#created_time = result.CREATEDTIME;
 	}
 }
 

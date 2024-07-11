@@ -3,20 +3,20 @@ const { CatalystApp } = require('zcatalyst-sdk-node/lib/catalyst-app');
 const Payload = require('../pojos/Payload');
 
 class PayloadAssetService {
+	static #FOLDER_NAME = 'CATALYST_AS_BUFFER';
+
 	/**
 	 *
-	 * @type {Record<string,string>}
+	 * @type {string}
 	 * @private
 	 */
-	#files;
+	#basePath;
 	/**
 	 *
 	 * @type {CatalystApp}
 	 * @private
 	 */
 	#catalystApp;
-
-	#FOLDER_NAME = 'CATALYST_AS_BUFFER';
 
 	/**
 	 *
@@ -25,19 +25,21 @@ class PayloadAssetService {
 	 */
 	constructor(catalystApp, payload) {
 		this.#catalystApp = catalystApp;
-		this.#files = payload.getFiles();
+		this.#basePath = payload.getRowId();
 	}
 
 	/**
 	 *
 	 * @async
+	 * @param {string} fileName
 	 * @returns {Promise<void>}
 	 */
-	async flushAssets() {
-		const folder = this.#catalystApp.filestore().folder(this.#FOLDER_NAME);
-		for (const fileId of Object.values(this.#files)) {
-			await folder.deleteFile(fileId);
-		}
+	async deleteAsset(fileId) {
+		const folder = this.#catalystApp
+			.filestore()
+			.folder(PayloadAssetService.#FOLDER_NAME);
+
+		await folder.deleteFile(fileId);
 	}
 
 	/**

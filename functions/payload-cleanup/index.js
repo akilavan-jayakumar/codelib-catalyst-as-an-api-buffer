@@ -43,10 +43,12 @@ module.exports = async (_, context) => {
 				);
 
 				for (const payload of payloads) {
-					await PayloadAssetService.getInstance(
-						catalystApp,
-						payload
-					).flushAssets();
+					if (payload.getRequestBodyFileId().length) {
+						await PayloadAssetService.getInstance(
+							catalystApp,
+							payload
+						).deleteAsset(payload.getRequestBodyFileId());
+					}
 				}
 
 				await payloadService.deletePayloads(
