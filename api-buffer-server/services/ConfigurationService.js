@@ -116,19 +116,6 @@ class ConfigurationService {
 	}
 
 	/**
-	 *
-	 * @param {Configuration} configuration
-	 * @return {Promise<void>}
-	 */
-	async createConfiguration(configuration) {
-		await this.#catalystApp
-			.datastore()
-			.table('Configuration')
-			.insertRow(configuration.getInsertPayload())
-			.then((result) => configuration.loadFromTableResult(result));
-	}
-
-	/**
 	 * @static
 	 * @param {CatalystApp} catalystApp
 	 * @returns {ConfigurationService}

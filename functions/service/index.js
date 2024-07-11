@@ -49,6 +49,7 @@ app.get('/configuration/:configuration_id', async (request, response, next) => {
 				"We couldn't find the requested configuration on the server."
 			);
 		}
+		
 		const responseWrapper = new ResponseWrapper(ResponseType.APPLICATION_JSON);
 		responseWrapper.setData(configuration.getResponseJson());
 		responseWrapper.setStatusCode(ResponseStatusCode.OK);

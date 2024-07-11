@@ -120,7 +120,7 @@ module.exports = async (jobRequest, context) => {
 
 					if (
 						payload.getRequestContentType() ===
-						PayloadRequestContentType.APPLICATION_JSON
+						PayloadRequestContentType['application/json']
 					) {
 						await payloadAssetService.getAssetAsJson(fileName).then((data) => {
 							requestConfiguration['headers'] = {

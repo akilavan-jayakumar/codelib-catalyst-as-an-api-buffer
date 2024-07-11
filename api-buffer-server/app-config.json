@@ -1,0 +1,10 @@
+{
+	"command": "npm run start",
+	"build_path": "/Users/akilavan-11430/Documents/Solutions/codelib-solutions/codelib-catalyst-as-an-api-buffer/api-buffer-server",
+	"stack": "node18",
+	"env_variables": {
+		"CODELIB_SECRET_KEY": "CODELIB_FAKE_KEY"
+	},
+	"memory": 256,
+	"scripts": {}
+}
