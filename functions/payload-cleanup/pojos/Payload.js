@@ -95,16 +95,15 @@ class Payload {
 		const json = result['Payload'];
 
 		this.#rowId = json.ROWID;
-		this.#retry_count = json.RETRY_COUNT;
 		this.#created_time = json.CREATEDTIME;
 		this.#response_info = json.RESPONSE_INFO;
+		this.#request_method = json.REQUEST_METHOD;
 		this.#configuration_id = json.CONFIGURATION_ID;
 		this.#request_full_path = json.REQUEST_FULL_PATH;
 		this.#request_body_file_id = json.REQUEST_BODY_FILE_ID;
-
-		this.#request_method = json.REQUEST_METHOD;
 		this.#request_content_type = json.REQUEST_CONTENT_TYPE;
-
+		
+		this.#retry_count = parseInt(json.RETRY_COUNT);
 		this.#request_execution_status = parseInt(json.REQUEST_EXECUTION_STATUS);
 		this.#response_status_code = json.RESPONSE_STATUS_CODE
 			? parseInt(json.RESPONSE_STATUS_CODE)

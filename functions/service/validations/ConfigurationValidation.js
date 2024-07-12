@@ -3,6 +3,7 @@ const { Request } = require('express');
 const AppError = require('../errors/AppError');
 const AjvInstance = require('../instances/AjvInstance');
 const ResponseStatusCode = require('../enums/ResponseStatusCode');
+const ConfigurationConstants = require('../constants/ConfigurationConstants');
 
 class ConfigurationValidation {
 	static #CONFIGURATION_NAME_PATTERN = '^[0-9A-Za-z_-]+$';
@@ -77,7 +78,7 @@ class ConfigurationValidation {
 				},
 				throttle_limit: {
 					type: 'number',
-					minimum: 1,
+					minimum: ConfigurationConstants.DEFAULT_CONCURRENCY_LIMIT,
 					errorMessage: {
 						type: 'Invalid value for throttle_limit. throttle_limit should be a number',
 						minimum: 'throttle_limit should be greater than or equal to 1.'

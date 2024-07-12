@@ -55,6 +55,9 @@ module.exports = async (_, context) => {
 					payloads.map((payload) => payload.getRowId())
 				);
 			}
+			console.log('Total payloads processed ::: ', totalRecords);
+		} else {
+			console.log('No payloads to process');
 		}
 		context.closeWithSuccess();
 	} catch (err) {

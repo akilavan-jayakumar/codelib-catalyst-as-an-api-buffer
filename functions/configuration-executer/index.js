@@ -55,7 +55,7 @@ module.exports = async (jobRequest, context) => {
 			const payloads = [];
 			const baseHeaders = {};
 
-			if (configuration.getHeadersEndpoint().length) {
+			if (configuration.getHeadersEndpoint()?.length) {
 				await ConfigurationUtil.getHeaders(
 					domain,
 					configuration.getHeadersEndpoint()
@@ -66,16 +66,17 @@ module.exports = async (jobRequest, context) => {
 				});
 			}
 
-			const totalPages = Math.ceil(
-				totalRecords / CatalystDatastoreConstants.MAX_RECORDS_PER_OPERATION
+			const limit = Math.min(
+				totalRecords,
+				CatalystDatastoreConstants.MAX_RECORDS_PER_OPERATION
 			);
+			const totalPages = Math.ceil(totalRecords / limit);
 
 			for (let page = 1; page <= totalPages; page++) {
-				const offset =
-					(page - 1) * CatalystDatastoreConstants.MAX_RECORDS_PER_OPERATION + 1;
+				const offset = (page - 1) * limit + 1;
 				await payloadService
 					.getPayloadsWithLimit(
-						CatalystDatastoreConstants.MAX_RECORDS_PER_OPERATION,
+						limit,
 						offset,
 						[],
 						[configuration_id],
@@ -85,23 +86,22 @@ module.exports = async (jobRequest, context) => {
 					.then((records) => payloads.push(...records));
 			}
 
+			const concurrencyLimit = configuration.getConcurrencyLimit();
+
 			const totalConcurrentRequests = Math.ceil(
-				payloads.length / configuration.getConcurrencyLimit()
+				payloads.length / concurrencyLimit
 			);
 
 			for (
 				let concurrentRequestNo = 1;
 				concurrentRequestNo <= totalConcurrentRequests;
-				concurrentRequestNo += configuration.getConcurrencyLimit()
+				concurrentRequestNo++
 			) {
 				const promises = [];
 				const requestConfigurations = [];
 
-				const start = concurrentRequestNo - 1;
-				const end = Math.min(
-					start + configuration.getConcurrencyLimit(),
-					payloads.length
-				);
+				const start = (concurrentRequestNo - 1) * concurrencyLimit;
+				const end = Math.min(start + concurrencyLimit, payloads.length);
 
 				const payloadsToBeProcessed = payloads.slice(start, end);
 
@@ -170,12 +170,8 @@ module.exports = async (jobRequest, context) => {
 			}
 
 			for (let page = 1; page <= totalPages; page++) {
-				const start =
-					(page - 1) * CatalystDatastoreConstants.MAX_RECORDS_PER_OPERATION;
-				const end = Math.min(
-					start + CatalystDatastoreConstants.MAX_RECORDS_PER_OPERATION,
-					payloads.length
-				);
+				const start = (page - 1) * limit;
+				const end = Math.min(start + limit, payloads.length);
 
 				await payloadService.updatePayloads(payloads.slice(start, end));
 			}
