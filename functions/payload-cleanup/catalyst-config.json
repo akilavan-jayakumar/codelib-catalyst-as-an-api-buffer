@@ -3,7 +3,9 @@
 		"name": "payload-cleanup",
 		"stack": "node18",
 		"type": "job",
-		"env_variables": {}
+		"env_variables": {
+			"ZOHO_CATALYST_ZCQL_PARSER": "V2"
+		}
 	},
 	"execution": {
 		"main": "index.js"

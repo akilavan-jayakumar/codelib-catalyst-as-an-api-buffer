@@ -9,7 +9,7 @@ class RequestUtil {
 	 * @return {string}
 	 */
 	static getDomain(request) {
-		let domain = request.headers(RequestConstants.HeaderKeys.HOST);
+		let domain = request.headers[RequestConstants.HeaderKeys.HOST];
 
 		if (domain.includes(':')) {
 			domain = domain.substring(0, domain.indexOf(':'));

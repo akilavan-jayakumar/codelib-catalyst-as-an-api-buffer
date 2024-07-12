@@ -1,14 +1,12 @@
-const axios = require('axios');
+const axios = require('axios').default;
 const catalyst = require('zcatalyst-sdk-node');
 
-const PayloadUtil = require('./utils/PayloadUtil');
 const PayloadService = require('./services/PayloadService');
 const ConfigurationUtil = require('./utils/ConfigurationUtil');
+const PayloadConstants = require('./constants/PayloadConstants');
 const CatalystJobService = require('./services/CatalystJobService');
-const PayloadRequestMethod = require('./enums/PayloadRequestMethod');
 const PayloadAssetService = require('./services/PayloadAssetService');
 const ConfigurationService = require('./services/ConfigurationService');
-const PayloadRequestContentType = require('./enums/PayloadRequestContentType');
 const CatalystDatastoreConstants = require('./constants/CatalystDatastoreConstants');
 const PayloadRequestExecutionStatus = require('./enums/PayloadRequestExecutionStatus');
 
@@ -54,13 +52,17 @@ module.exports = async (jobRequest, context) => {
 
 		if (totalRecords) {
 			const payloads = [];
-			let baseHeaders = {};
+			const baseHeaders = {};
 
 			if (configuration.getHeadersEndpoint().length) {
 				await ConfigurationUtil.getHeaders(
 					domain,
 					configuration.getHeadersEndpoint()
-				).then((headers) => (baseHeaders = headers));
+				).then((headers) => {
+					for (const [key, value] of Object.values(headers)) {
+						baseHeaders[key] = value;
+					}
+				});
 			}
 
 			const totalPages = Math.ceil(
@@ -109,36 +111,20 @@ module.exports = async (jobRequest, context) => {
 						url: configuration.getBaseUrl() + payload.getRequestFullPath()
 					};
 
-					const payloadAssetService = PayloadAssetService.getInstance(
-						catalystApp,
-						payload
-					);
-
-					const fileName = PayloadUtil.getPayloadFileName(
-						payload.getRequestContentType()
-					);
-
 					if (
-						payload.getRequestContentType() ===
-						PayloadRequestContentType['application/json']
+						payload.getRequestContentType() &&
+						payload.getRequestBodyFileId()
 					) {
-						await payloadAssetService.getAssetAsJson(fileName).then((data) => {
-							requestConfiguration['headers'] = {
-								...requestConfiguration['headers'],
-								'Content-Type':
-									PayloadRequestContentType[payload.getRequestContentType()]
-							};
-							requestConfiguration['data'] = data;
-						});
-					} else {
-						await payloadAssetService.getAssetAsText(fileName).then((data) => {
-							requestConfiguration['headers'] = {
-								...requestConfiguration['headers'],
-								'Content-Type':
-									PayloadRequestContentType[payload.getRequestContentType()]
-							};
-							requestConfiguration['data'] = data;
-						});
+						await PayloadAssetService.getInstance(catalystApp, payload)
+							.getAssetAsText(payload.getRequestBodyFileId())
+							.then((data) => {
+								requestConfiguration['headers'] = {
+									...requestConfiguration['headers'],
+									[PayloadConstants.HEADER_KEYS.CONTENT_TYPE]:
+										payload.getRequestContentType()
+								};
+								requestConfiguration['data'] = data;
+							});
 					}
 
 					requestConfigurations.push(requestConfiguration);
@@ -148,7 +134,10 @@ module.exports = async (jobRequest, context) => {
 					promises.push(
 						axios(requestConfigurations[i])
 							.then((response) => {
-								const { status } = response;
+								const { status, data } = response;
+								payloadsToBeProcessed[i].setResponseInfo(
+									JSON.stringify({ data })
+								);
 								payloadsToBeProcessed[i].setRequestExecutionStatus(
 									PayloadRequestExecutionStatus.success
 								);
@@ -156,12 +145,20 @@ module.exports = async (jobRequest, context) => {
 							})
 							.catch((err) => {
 								const {
-									response: { status }
+									response: { status, data }
 								} = err;
 
+								payloadsToBeProcessed[i].setResponseInfo(
+									JSON.stringify({ data })
+								);
 								payloadsToBeProcessed[i].setResponseStatusCode(status);
 								payloadsToBeProcessed[i].setRequestExecutionStatus(
 									PayloadRequestExecutionStatus.failure
+								);
+							})
+							.finally(() => {
+								payloadsToBeProcessed[i].setRetryCount(
+									payloadsToBeProcessed[i].getRetryCount() + 1
 								);
 							})
 					);
@@ -196,7 +193,29 @@ module.exports = async (jobRequest, context) => {
 
 		context.closeWithSuccess();
 	} catch (err) {
-		console.log('Error ::: ', err);
+		if (err instanceof AxiosError) {
+			const {
+				response: {
+					data,
+					status,
+					config: { url }
+				}
+			} = err;
+			console.log(
+				'Error ::: ',
+				JSON.stringify(
+					{
+						url,
+						data,
+						status
+					},
+					null,
+					4
+				)
+			);
+		} else {
+			console.log('Error :::', err);
+		}
 		context.closeWithFailure();
 	}
 };
