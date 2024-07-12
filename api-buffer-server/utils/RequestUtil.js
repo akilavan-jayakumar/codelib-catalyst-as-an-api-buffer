@@ -7,20 +7,29 @@ class RequestUtil {
 	/**
 	 * @static
 	 * @param {Request} request
+	 * @return {boolean}
+	 */
+	static isValidRequestToReadBodyContent(request) {
+		const method = request.method;
+		return (
+			method !== RequestMethod.GET &&
+			method !== RequestMethod.HEAD &&
+			method !== RequestMethod.OPTIONS &&
+			request.headers[RequestConstants.HEADER_KEYS.CONTENT_TYPE]
+		);
+	}
+
+	/**
+	 * @static
+	 * @param {Request} request
 	 * @return {string|null}
 	 */
 	static getContentType(request) {
-		const method = request.method;
-		if (
-			method !== RequestMethod.GET ||
-			method !== RequestMethod.HEAD ||
-			method !== RequestMethod.OPTIONS ||
-			!request.headers[RequestConstants.HeaderKeys.CONTENT_TYPE]
-		) {
-			return null;
+		if (this.isValidRequestToReadBodyContent(request)) {
+			return request.headers[RequestConstants.HEADER_KEYS.CONTENT_TYPE];
 		}
 
-		return request.headers[RequestConstants.HeaderKeys.CONTENT_TYPE];
+		return null;
 	}
 
 	/**
@@ -30,7 +39,7 @@ class RequestUtil {
 	 */
 	static getCodeLibSecretKey(request) {
 		return request.headers[
-			RequestConstants.HeaderKeys.CATALYST_CODELIB_SECRET_KEY
+			RequestConstants.HEADER_KEYS.CATALYST_CODELIB_SECRET_KEY
 		];
 	}
 }

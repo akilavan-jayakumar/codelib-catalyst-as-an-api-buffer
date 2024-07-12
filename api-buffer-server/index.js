@@ -1,5 +1,5 @@
 const express = require('express');
-const rawBody = require('raw-body');
+const bodyParser = require('raw-body');
 const catalyst = require('zcatalyst-sdk-node');
 
 const Payload = require('./pojos/Payload');
@@ -10,7 +10,6 @@ const RequestUtil = require('./utils/RequestUtil');
 const PayloadUtil = require('./utils/PayloadUtil');
 const ResponseType = require('./enums/ResponseType');
 const DiskService = require('./services/DiskService');
-const RequestMethod = require('./enums/RequestMethod');
 const ErrorHandler = require('./handlers/ErrorHandler');
 const EnvConstants = require('./constants/EnvConstants');
 const ResponseWrapper = require('./web/ResponseWrapper');
@@ -18,6 +17,7 @@ const PayloadService = require('./services/PayloadService');
 const ResponseHandler = require('./handlers/ResponseHandler');
 const PayloadConstants = require('./constants/PayloadConstants');
 const ResponseStatusCode = require('./enums/ResponseStatusCode');
+const RequestConstants = require('./constants/RequestConstants');
 const PayloadValidation = require('./validations/PayloadValidation');
 const PayloadAssetService = require('./services/PayloadAssetService');
 const ConfigurationService = require('./services/ConfigurationService');
@@ -45,7 +45,35 @@ app.use(async (request, response, next) => {
 	try {
 		const catalystApp = catalyst.initialize(request);
 		response.locals.catalystApp = catalystApp;
-		request.rawBody = await rawBody(request);
+
+		if (RequestUtil.isValidRequestToReadBodyContent(request)) {
+			request.rawBodyBuffer = await new Promise((resolve, reject) => {
+				bodyParser(
+					request,
+					{
+						limit: RequestConstants.MAX_ENTITY_SIZE
+					},
+					(err, buffer) => {
+						if (err) {
+							if (err.name === 'PayloadTooLargeError') {
+								reject(
+									new AppError(
+										ResponseStatusCode.REQUEST_ENTITY_TOO_LARGE,
+										"We're unable to process your request because the given entity is too large."
+									)
+								);
+							} else {
+								reject(err);
+							}
+						} else {
+							resolve(buffer);
+						}
+					}
+				);
+			});
+		} else {
+			request.rawBodyBuffer = null;
+		}
 		next();
 	} catch (err) {
 		next(err);
@@ -63,7 +91,7 @@ app.all('/:configuration_id/*', async (request, response, next) => {
 		const configuration_id = request.params.configuration_id;
 
 		const method = request.method;
-		const rawBody = request.rawBody;
+		const rawBodyBuffer = request.rawBodyBuffer;
 		const contentType = RequestUtil.getContentType(request);
 
 		if (CommonUtil.isNumber(configuration_id)) {
@@ -98,11 +126,7 @@ app.all('/:configuration_id/*', async (request, response, next) => {
 		const payloadService = PayloadService.getInstance(catalystApp);
 		await payloadService.createPayload(payload);
 
-		if (
-			method !== RequestMethod.GET ||
-			method !== RequestMethod.HEAD ||
-			method !== RequestMethod.OPTIONS
-		) {
+		if (rawBodyBuffer) {
 			const diskService = new DiskService();
 			const payloadFileName = PayloadUtil.getPayloadFileName(
 				payload.getRowId()
@@ -113,8 +137,8 @@ app.all('/:configuration_id/*', async (request, response, next) => {
 				payload
 			);
 
-			await diskService.writeFile(payloadFileName, rawBody);
-			const readStream = await diskService.readFileAsStream(payloadFileName);
+			await diskService.writeBufferToFile(payloadFileName, rawBodyBuffer);
+			const readStream = await diskService.getFileReadStream(payloadFileName);
 
 			await payloadAssetService
 				.uploadAsset(payloadFileName, readStream)

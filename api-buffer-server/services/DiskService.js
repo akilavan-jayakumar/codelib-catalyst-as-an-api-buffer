@@ -40,7 +40,7 @@ class DiskService {
 	 * @param {Buffer} buffer
 	 * @returns {Promise<void>}
 	 */
-	async writeFile(fileName, buffer) {
+	async writeBufferToFile(fileName, buffer) {
 		await this.#init();
 		await fs.promises.writeFile(this.#getPath(fileName), buffer);
 	}
@@ -51,7 +51,7 @@ class DiskService {
 	 * @param {string} fileName
 	 * @returns {Promise<fs.ReadStream>}
 	 */
-	async readFileAsStream(fileName) {
+	async getFileReadStream(fileName) {
 		await this.#init();
 		return fs.createReadStream(this.#getPath(fileName));
 	}
