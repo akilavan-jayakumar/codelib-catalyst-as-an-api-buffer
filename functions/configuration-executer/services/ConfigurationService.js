@@ -98,24 +98,6 @@ class ConfigurationService {
 	}
 
 	/**
-	 *
-	 * @async
-	 * @param {string} name
-	 * @returns {Promise<Configuration|null>}
-	 */
-	async getConfigurationByName(name) {
-		return this.getConfigurationsWithLimit(1, 1, name, []).then(
-			(configurations) => {
-				if (configurations.length) {
-					return configurations[0];
-				} else {
-					return null;
-				}
-			}
-		);
-	}
-
-	/**
 	 * @static
 	 * @param {CatalystApp} catalystApp
 	 * @returns {ConfigurationService}

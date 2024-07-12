@@ -91,35 +91,6 @@ class Configuration {
 		this.#throttle_window_time = parseInt(json['THROTTLE_WINDOW_TIME']);
 	}
 
-	loadFromTableResult(result) {
-		this.#rowId = result['ROWID'];
-		this.#created_time = result['CREATEDTIME'];
-	}
-
-	getInsertPayload() {
-		return {
-			NAME: this.#name,
-			BASE_URL: this.#base_url,
-			MAX_RETRIES: this.#max_retries,
-			THROTTLE_LIMIT: this.#throttle_limit,
-			HEADERS_ENDPOINT: this.#headers_endpoint,
-			CONCURRENCY_LIMIT: this.#concurrency_limit,
-			THROTTLE_WINDOW_TIME: this.#throttle_window_time
-		};
-	}
-
-	getResponseJson() {
-		return {
-			id: this.#rowId,
-			name: this.#name,
-			base_url: this.#base_url,
-			max_retries: this.#max_retries,
-			created_time: this.#created_time,
-			throttle_limit: this.#throttle_limit,
-			headers_endpoint: this.#headers_endpoint,
-			throttle_window_time: this.#throttle_window_time
-		};
-	}
 }
 
 module.exports = Configuration;

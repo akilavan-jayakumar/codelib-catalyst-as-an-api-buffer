@@ -112,6 +112,7 @@ class Payload {
 			RESPONSE_INFO: this.#response_info,
 			REQUEST_METHOD: this.#request_method,
 			CONFIGURATION_ID: this.#response_info,
+			CONFIGURATION_ID:this.#configuration_id,
 			REQUEST_FULL_PATH: this.#request_full_path,
 			REQUEST_CONTENT_TYPE: this.#request_content_type,
 			REQUEST_BODY_FILE_ID: this.#request_body_file_id,

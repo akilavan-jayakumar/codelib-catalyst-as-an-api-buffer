@@ -78,43 +78,15 @@ class Configuration {
 		this.#name = json['NAME'];
 		this.#rowId = json['ROWID'];
 		this.#base_url = json['BASE_URL'];
-		this.#max_retries = json['MAX_RETRIES'];
 		this.#created_time = json['CREATEDTIME'];
-		this.#throttle_limit = json['THROTTLE_LIMIT'];
 		this.#headers_endpoint = json['HEADERS_ENDPOINT'];
-		this.#concurrency_limit = json['CONCURRENCY_LIMIT'];
-		this.#throttle_window_time = json['THROTTLE_WINDOW_TIME'];
+		
+		this.#max_retries = parseInt(json['MAX_RETRIES']);
+		this.#throttle_limit = parseInt(json['THROTTLE_LIMIT']);
+		this.#concurrency_limit = parseInt(json['CONCURRENCY_LIMIT']);
+		this.#throttle_window_time = parseInt(json['THROTTLE_WINDOW_TIME']);
 	}
 
-	loadFromTableResult(result) {
-		this.#rowId = result['ROWID'];
-		this.#created_time = result['CREATEDTIME'];
-	}
-
-	getInsertPayload() {
-		return {
-			NAME: this.#name,
-			BASE_URL: this.#base_url,
-			MAX_RETRIES: this.#max_retries,
-			THROTTLE_LIMIT: this.#throttle_limit,
-			HEADERS_ENDPOINT: this.#headers_endpoint,
-			CONCURRENCY_LIMIT: this.#concurrency_limit,
-			THROTTLE_WINDOW_TIME: this.#throttle_window_time
-		};
-	}
-
-	getResponseJson() {
-		return {
-			id: this.#rowId,
-			name: this.#name,
-			base_url: this.#base_url,
-			max_retries: this.#max_retries,
-			created_time: this.#created_time,
-			throttle_limit: this.#throttle_limit,
-			headers_endpoint: this.#headers_endpoint,
-			throttle_window_time: this.#throttle_window_time
-		};
-	}
 }
 
 module.exports = Configuration;

@@ -1,4 +1,5 @@
-const axios = require('axios').default;
+const axios = require('axios');
+const { AxiosError } = require('axios');
 const catalyst = require('zcatalyst-sdk-node');
 
 const PayloadService = require('./services/PayloadService');
@@ -106,8 +107,7 @@ module.exports = async (jobRequest, context) => {
 
 				for (const payload of payloadsToBeProcessed) {
 					const requestConfiguration = {
-						headers: baseHeaders,
-						method: PayloadRequestMethod[payload.getRequestMethod()],
+						method: payload.getRequestMethod(),
 						url: configuration.getBaseUrl() + payload.getRequestFullPath()
 					};
 
@@ -119,12 +119,14 @@ module.exports = async (jobRequest, context) => {
 							.getAssetAsText(payload.getRequestBodyFileId())
 							.then((data) => {
 								requestConfiguration['headers'] = {
-									...requestConfiguration['headers'],
+									...baseHeaders,
 									[PayloadConstants.HEADER_KEYS.CONTENT_TYPE]:
 										payload.getRequestContentType()
 								};
 								requestConfiguration['data'] = data;
 							});
+					} else {
+						requestConfiguration['headers'] = { ...baseHeaders };
 					}
 
 					requestConfigurations.push(requestConfiguration);

@@ -92,7 +92,8 @@ app.all('/:configuration_id/*', async (request, response, next) => {
 
 		const method = request.method;
 		const rawBodyBuffer = request.rawBodyBuffer;
-		const contentType = RequestUtil.getContentType(request);
+		const requestContentType = RequestUtil.getContentType(request);
+		const requestFullPath = request.originalUrl.replace(`/${configuration_id}`,'')
 
 		if (CommonUtil.isNumber(configuration_id)) {
 			configuration = await ConfigurationService.getInstance(
@@ -117,8 +118,8 @@ app.all('/:configuration_id/*', async (request, response, next) => {
 		payload.setRequestBodyFileId('');
 		payload.setRequestMethod(method);
 		payload.setResponseStatusCode(null);
-		payload.setRequestContentType(contentType);
-		payload.setRequestFullPath(request.originalUrl);
+		payload.setRequestFullPath(requestFullPath);
+		payload.setRequestContentType(requestContentType);
 		payload.setConfigurationId(configuration.getRowId());
 		payload.setRetryCount(PayloadConstants.MAX_RETRY_BASE_VALUE);
 		payload.setRequestExecutionStatus(PayloadRequestExecutionStatus.pending);
