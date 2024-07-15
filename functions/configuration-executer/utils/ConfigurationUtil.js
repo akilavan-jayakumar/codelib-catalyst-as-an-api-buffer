@@ -12,7 +12,7 @@ class ConfigurationUtil {
 	 */
 	static async getHeaders(domain, endpoint) {
 		return axios
-			.get(domain + ConfigurationConstants.BASE_ENDPOINT + endpoint, {
+			.get(domain + ConfigurationConstants.HEADERS_BASE_ENDPOINT + endpoint, {
 				headers: {
 					[ConfigurationConstants.HEADERS_RETRIEVING_HEADER_KEYS
 						.CATALYST_CODELIB_SECRET_KEY]: EnvConstants.CODELIB_SECRET_KEY

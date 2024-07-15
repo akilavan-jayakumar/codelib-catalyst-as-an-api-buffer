@@ -1,12 +1,10 @@
-const axios = require('axios');
 const { AxiosError } = require('axios');
 const catalyst = require('zcatalyst-sdk-node');
 
 const PayloadService = require('./services/PayloadService');
+const PayloadHandler = require('./handlers/PayloadHandler');
 const ConfigurationUtil = require('./utils/ConfigurationUtil');
-const PayloadConstants = require('./constants/PayloadConstants');
 const CatalystJobService = require('./services/CatalystJobService');
-const PayloadAssetService = require('./services/PayloadAssetService');
 const ConfigurationService = require('./services/ConfigurationService');
 const CatalystDatastoreConstants = require('./constants/CatalystDatastoreConstants');
 const PayloadRequestExecutionStatus = require('./enums/PayloadRequestExecutionStatus');
@@ -53,16 +51,14 @@ module.exports = async (jobRequest, context) => {
 
 		if (totalRecords) {
 			const payloads = [];
-			const baseHeaders = {};
+			let baseHeaders = {};
 
 			if (configuration.getHeadersEndpoint()?.length) {
 				await ConfigurationUtil.getHeaders(
 					domain,
 					configuration.getHeadersEndpoint()
 				).then((headers) => {
-					for (const [key, value] of Object.values(headers)) {
-						baseHeaders[key] = value;
-					}
+					baseHeaders = headers;
 				});
 			}
 
@@ -98,7 +94,6 @@ module.exports = async (jobRequest, context) => {
 				concurrentRequestNo++
 			) {
 				const promises = [];
-				const requestConfigurations = [];
 
 				const start = (concurrentRequestNo - 1) * concurrencyLimit;
 				const end = Math.min(start + concurrencyLimit, payloads.length);
@@ -106,64 +101,14 @@ module.exports = async (jobRequest, context) => {
 				const payloadsToBeProcessed = payloads.slice(start, end);
 
 				for (const payload of payloadsToBeProcessed) {
-					const requestConfiguration = {
-						method: payload.getRequestMethod(),
-						url: configuration.getBaseUrl() + payload.getRequestFullPath()
-					};
-
-					if (
-						payload.getRequestContentType() &&
-						payload.getRequestBodyFileId()
-					) {
-						await PayloadAssetService.getInstance(catalystApp, payload)
-							.getAssetAsText(payload.getRequestBodyFileId())
-							.then((data) => {
-								requestConfiguration['headers'] = {
-									...baseHeaders,
-									[PayloadConstants.HEADER_KEYS.CONTENT_TYPE]:
-										payload.getRequestContentType()
-								};
-								requestConfiguration['data'] = data;
-							});
-					} else {
-						requestConfiguration['headers'] = { ...baseHeaders };
-					}
-
-					requestConfigurations.push(requestConfiguration);
-				}
-
-				for (let i = 0; i < payloadsToBeProcessed.length; i++) {
-					promises.push(
-						axios(requestConfigurations[i])
-							.then((response) => {
-								const { status, data } = response;
-								payloadsToBeProcessed[i].setResponseInfo(
-									JSON.stringify({ data })
-								);
-								payloadsToBeProcessed[i].setRequestExecutionStatus(
-									PayloadRequestExecutionStatus.success
-								);
-								payloadsToBeProcessed[i].setResponseStatusCode(status);
-							})
-							.catch((err) => {
-								const {
-									response: { status, data }
-								} = err;
-
-								payloadsToBeProcessed[i].setResponseInfo(
-									JSON.stringify({ data })
-								);
-								payloadsToBeProcessed[i].setResponseStatusCode(status);
-								payloadsToBeProcessed[i].setRequestExecutionStatus(
-									PayloadRequestExecutionStatus.failure
-								);
-							})
-							.finally(() => {
-								payloadsToBeProcessed[i].setRetryCount(
-									payloadsToBeProcessed[i].getRetryCount() + 1
-								);
-							})
+					const payloadHandler = PayloadHandler.getInstance(
+						configuration.getBaseUrl(),
+						payload,
+						baseHeaders,
+						catalystApp
 					);
+					await payloadHandler.preHandlePayload();
+					promises.push(payloadHandler.handlePayload());
 				}
 
 				await Promise.all(promises);

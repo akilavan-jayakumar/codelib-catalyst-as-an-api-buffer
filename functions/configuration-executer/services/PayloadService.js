@@ -5,8 +5,8 @@ const Payload = require('../pojos/Payload');
 class PayloadService {
 	/**
 	 *
-	 * @type {CatalystApp}
 	 * @private
+	 * @type {CatalystApp}
 	 */
 	#catalystApp;
 
